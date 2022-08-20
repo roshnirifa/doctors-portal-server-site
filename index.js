@@ -20,6 +20,7 @@ async function run() {
         console.log('db connected');
         const serviceCollections = client.db("doctors_portal").collection('services');
         const bookingCollections = client.db("doctors_portal").collection('bookings');
+        const userCollections = client.db("doctors_portal").collection('users');
 
         //  get all the service
         app.get('/service', async (req, res) => {
@@ -29,6 +30,18 @@ async function run() {
             res.send(services)
         })
 
+        // all users (update a document)
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await userCollections.updateOne(filter, updateDoc, options);
+            res.send(result)
+        })
 
 
         // available appoinment
