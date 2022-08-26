@@ -24,6 +24,22 @@ async function run() {
         const bookingCollections = client.db("doctors_portal").collection('bookings');
         const userCollections = client.db("doctors_portal").collection('users');
 
+        function verifyJWT(req, res, next) {
+            const authHeader = req.headers.authorization;
+            if (!authHeader) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+            const token = authHeader.spilt(' ')[1]
+            // verify a token symmetric
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+                if (err) {
+                    return res.status(403).send({ messege: "Forbiden access" })
+                }
+                req.decoded = decoded;
+                next()
+            });
+        }
+
         //  get all the service
         app.get('/service', async (req, res) => {
             const query = {};
@@ -69,11 +85,17 @@ async function run() {
             res.send(services)
         })
         // my appppointment booking
-        app.get('/booking', async (req, res) => {
+        app.get('/booking', verifyJWT, async (req, res) => {
             const patient = req.query.patient;
-            const query = { patient: patient };
-            const bookings = await bookingCollections.find(query).toArray();
-            res.send(bookings);
+            const decodedEmail = req.decoded.email;
+            if (patient === decodedEmail) {
+                const query = { patient: patient };
+                const bookings = await bookingCollections.find(query).toArray();
+                return res.send(bookings);
+            }
+            else {
+                req.status(403).send({ messege: "forbiden access" });
+            }
         })
 
         app.post('/booking', async (req, res) => {
